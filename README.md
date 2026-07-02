@@ -1,5 +1,8 @@
 # LocalBarycentric.jl
 
+[![Dev docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://canonical111.github.io/LocalBarycentric.jl/dev/)
+[![CI](https://github.com/Canonical111/LocalBarycentric.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/Canonical111/LocalBarycentric.jl/actions/workflows/CI.yml)
+
 High-order **local barycentric Lagrange interpolation** of tabulated 1-D data —
 precomputed sliding-window weights, any `Real` number type (Float64,
 [Double64](https://github.com/JuliaMath/DoubleFloats.jl), BigFloat, …), a graded
