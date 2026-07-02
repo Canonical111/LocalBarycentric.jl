@@ -1,6 +1,5 @@
 using Test
 using LocalBarycentric
-using DoubleFloats
 using Random
 using LinearAlgebra
 
@@ -76,12 +75,12 @@ end
     x = (bnodes[200] + bnodes[201]) / 2
     @test abs((interpolate_local(bcache, bvals, x) - fexact(x)) / fexact(x)) < BigFloat(10)^-45
 
-    # Double64-weight path on Float64 data: limited by the data, not arithmetic
-    dcache = LocalBarycentricCache(NODES; order = 28, weight_type = Double64)
-    xd = Double64(NODES[200]) + Double64(0.5) * H
-    r = interpolate_local(dcache, vals, xd)
-    @test r isa Double64
-    @test relerr(r, Float64(xd)) < 5e-14
+    # wide-weight path on Float64 data: limited by the data, not arithmetic
+    wcache = LocalBarycentricCache(NODES; order = 28, weight_type = BigFloat)
+    xw = BigFloat(NODES[200]) + BigFloat(1) / 202
+    r = interpolate_local(wcache, vals, xw)
+    @test r isa BigFloat
+    @test relerr(r, Float64(xw)) < 5e-14
 end
 
 @testset "exact node hits" begin
@@ -90,9 +89,9 @@ end
     @test interpolate_local(cache, vals, NODES[57]) === vals[57]
     m = hcat(vals, 2 .* vals)
     @test interpolate_local(cache, m, NODES[57]) == [vals[57], 2vals[57]]
-    # Double64 query exactly on a Float64 node (exact lift ⇒ exact hit)
-    dcache = LocalBarycentricCache(NODES; order = 28, weight_type = Double64)
-    @test Float64(interpolate_local(dcache, vals, Double64(NODES[57]))) === vals[57]
+    # wide query exactly on a Float64 node (exact lift ⇒ exact hit)
+    wcache = LocalBarycentricCache(NODES; order = 28, weight_type = BigFloat)
+    @test Float64(interpolate_local(wcache, vals, BigFloat(NODES[57]))) === vals[57]
 end
 
 @testset "matrix path ≡ vector path (per column, same window/coeffs)" begin
@@ -124,9 +123,9 @@ end
     cache = LocalBarycentricCache(NODES; order = 28)
     x64 = NODES[200] + 0.37H
     rF = interpolate_local(cache, vals, x64)
-    rD = interpolate_local(cache, vals, Double64(x64))       # F64 weights, D64 coeffs
-    @test rD isa Double64
-    @test Float64(rD) ≈ rF rtol = 1e-14
+    rB = interpolate_local(cache, vals, BigFloat(x64))       # F64 weights, BigFloat coeffs
+    @test rB isa BigFloat
+    @test Float64(rB) ≈ rF rtol = 1e-14
 end
 
 @testset "argument validation" begin
