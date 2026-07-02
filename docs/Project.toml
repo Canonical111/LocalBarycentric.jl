@@ -1,0 +1,7 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DoubleFloats = "497a8b3b-efae-58df-a0af-a86822472b78"
+LocalBarycentric = "76f80961-2c25-4edf-81b6-8f2cadf61fa3"
+
+[sources]
+LocalBarycentric = {path = ".."}
