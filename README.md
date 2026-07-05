@@ -49,18 +49,32 @@ B-spline objects (BSplineKit) and ~3.7 ms Float64 for as-shipped global
 Floater–Hormann (BaryRational) at n = 15 000. At BigFloat the gap widens to
 hours-vs-seconds per 10⁴-point workload.
 
-## The edge taper
+## Edge windows (and the optional taper)
 
-Near a domain boundary a full-width window cannot center on the query; the
-query sits at the window's edge, where the equispaced degree-`n` Lebesgue
-function is ~2ⁿ, amplifying *data* rounding (≈10⁶× at degree 28 — i.e. Float64
-inputs lose 5–6 digits precisely at the boundary). `stencil_window` therefore
+Near a domain boundary a full-width window cannot center on the query — it
+clamps, one-sided. **By default the window keeps its full order there**
+(`edge_order_min = order`): the interpolant is the single degree-`order`
+scheme everywhere, with no geometric seams, and is maximally faithful to the
+interpolant of your data.
+
+For data whose node values carry error much larger than the working precision
+(and where the target is the underlying pre-noise function), the one-sided
+edge Lebesgue function ~2ⁿ amplifies that *data* error (≈10⁶× at degree 28).
+For that case pass a smaller `edge_order_min` (e.g. 12): `stencil_window`
 grades the width down (`clamp(2k, edge_order_min + 1, order + 1)` nodes, `k` =
-nodes on the thinner side), keeping the query near the window center. Measured
-on degree 28, step 1/101: worst-case boundary error improves from ~5e-11 to
-~4e-15 with Float64 data. Interior queries are untouched. The floor
-`edge_order_min = 12` keeps truncation below the Float64 data floor for grid
-steps ≲ 0.05; on much coarser grids consider raising it.
+nodes on the thinner side), keeping the query near the window center —
+measured on degree 28, step 1/101, worst-case boundary error vs the true
+function improves ~14 000× for noisy data. Interior queries are untouched.
+
+**Do not taper exact data.** If the tabulated values are exact for your
+purposes — including `Float64` data lifted into `Double64`/`BigFloat`, where
+the lift is exact — the taper's reduced edge order introduces genuine
+truncation differences (~1e-8 relative at degree 28 near the boundary) from
+the full-order interpolant, while the "noise" it guards against is common to
+every interpolant of the same data. In a downstream linear-programming
+application these edge kinks systematically biased computed bounds; full
+windows matched an exact-interpolation reference to 1e-8 in the final
+result. This is why full windows became the default in v0.2.0.
 
 Queries that hit a node exactly return the tabulated row unchanged. Queries
 outside the node hull extrapolate with the boundary window — avoid relying on

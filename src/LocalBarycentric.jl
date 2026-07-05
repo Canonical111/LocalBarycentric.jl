@@ -78,13 +78,13 @@ end
 
 """
     LocalBarycentricCache(nodes; order = 10, weight_type = eltype(nodes),
-                          edge_order_min = 12)
+                          edge_order_min = order)
 
 Precompute barycentric weights for every sliding window of `order + 1` nodes
 over the sorted vector `nodes` (Mathematica `InterpolationOrder` convention:
 `order` is the polynomial degree). One weight row is stored per window start,
-so hot-loop evaluation never recomputes weights except in the tapered edge
-zone.
+so hot-loop evaluation never recomputes weights except in a tapered edge
+zone, if one is enabled.
 
 `weight_type` sets the arithmetic type of the stored weights independently of
 the node storage type: e.g. `Float64` nodes with `weight_type = Double64`
@@ -92,10 +92,18 @@ gives an extended-precision evaluation path whose weights are computed from
 exactly-lifted nodes (lifting `Float64 → Double64/BigFloat` is exact, so this
 equals computing in the wide type from the start).
 
-`edge_order_min` floors the tapered edge windows at `edge_order_min + 1` nodes
-(default degree 12 — at that size the edge Lebesgue constant is ~10², small
-enough that data rounding stays near the working-precision floor while
-truncation remains negligible on fine grids).
+`edge_order_min` floors the edge windows at `edge_order_min + 1` nodes. The
+default (`= order`) keeps **full-width windows everywhere** — the boundary
+windows are one-sided but full order, so the interpolant is the single
+degree-`order` local scheme with no geometric seams. Pass a smaller value
+(e.g. `edge_order_min = 12`) to enable the graded edge taper, which trades
+truncation order near the boundary for a smaller edge Lebesgue constant —
+appropriate **only when the node values carry error much larger than the
+working precision** and the target is the underlying pre-noise function. When
+the tabulated values are exact for your purposes (the common case — including
+data lifted from `Float64` into wider types), full windows are strictly more
+faithful to the interpolant of the data; see the manual's edge-windows
+section for measurements.
 """
 struct LocalBarycentricCache{TN <: Real, TW <: Real}
     nodes::Vector{TN}
@@ -107,7 +115,7 @@ end
 function LocalBarycentricCache(nodes::AbstractVector{TN};
                                order::Int = 10,
                                weight_type::Type{TW} = TN,
-                               edge_order_min::Int = 12) where {TN <: Real, TW <: Real}
+                               edge_order_min::Int = order) where {TN <: Real, TW <: Real}
     issorted(nodes) || throw(ArgumentError("nodes must be sorted"))
     allunique(nodes) || throw(ArgumentError("nodes must be distinct"))
     stencil = clamp(order + 1, 2, length(nodes))

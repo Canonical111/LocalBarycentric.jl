@@ -1,7 +1,7 @@
 name = "LocalBarycentric"
 uuid = "76f80961-2c25-4edf-81b6-8f2cadf61fa3"
 authors = ["Zechuan Zheng <zechuan.zheng.phy@gmail.com>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"

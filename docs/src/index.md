@@ -2,16 +2,15 @@
 
 High-order **local barycentric Lagrange interpolation** of tabulated 1-D data:
 precomputed sliding-window weights, any `Real` number type (`Float64`,
-`Double64`, `BigFloat`, even `Rational`), a graded stencil taper at the domain
-edges, and per-query work shared across many data columns.
+`Double64`, `BigFloat`, even `Rational`), an optional graded stencil taper at
+the domain edges for noisy data, and per-query work shared across many data
+columns.
 
 ## Installation
 
-Until registration:
-
 ```julia
 using Pkg
-Pkg.add(url = "https://github.com/Canonical111/LocalBarycentric.jl")
+Pkg.add("LocalBarycentric")
 ```
 
 ## Quickstart

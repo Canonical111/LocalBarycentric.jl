@@ -33,16 +33,16 @@ interior: interior accuracy sits at the *data* rounding floor at every tested
 degree up to 120.
 
 One weight row is precomputed per window position, so hot-loop evaluation
-never recomputes weights (except in the tapered edge zone, where windows are
-narrower than the cached full width and the ``O(s^2)`` recompute is cheaper
-than the interior mat-vec anyway).
+never recomputes weights (except in a tapered edge zone, if one is enabled,
+where windows are narrower than the cached full width and the ``O(s^2)``
+recompute is cheaper than the interior mat-vec anyway).
 
-## The edge problem and the graded taper
+## Edge windows, the error model, and the optional taper
 
 Near a domain boundary the window cannot center; a full-width window *clamps*
 and the query sits at the window's **edge**, where the equispaced Lebesgue
 function grows like ``2^s``. Measured at degree 28, grid step ``1/101``,
-Float64 data:
+Float64 data, error **measured against the pre-rounding source function**:
 
 | query position | Lebesgue | relative error | with exact data |
 |---|---|---|---|
@@ -50,24 +50,43 @@ Float64 data:
 | subinterval 5 | ``216`` | ``2.0 \times 10^{-15}`` | ``9 \times 10^{-31}`` |
 | interior (centered) | ``1.9`` | ``2.0 \times 10^{-16}`` | ``4 \times 10^{-32}`` |
 
-The last column shows the scheme itself is nearly exact even at the edge — the
-error is amplified **input rounding**, so no amount of higher-precision
-*arithmetic* recovers it. The cure is geometric: [`stencil_window`](@ref)
-tapers the width to
+The last column shows the scheme itself is nearly exact even at the edge.
+Whether the middle column is a problem **depends on what the object of
+interest is** — and this choice decides whether you should taper:
 
-```math
-s(k) \;=\; \operatorname{clamp}\!\bigl(2k,\; s_{\min},\; \text{order}+1\bigr),
-```
+- **The data is exact for your purposes** (the default assumption, and the
+  common case: tabulated values you want interpolated as given, including
+  `Float64` data lifted exactly into `Double64`/`BigFloat`). Then there is no
+  input error to amplify, and the full-order one-sided window is the most
+  faithful evaluation of the degree-`order` interpolant. Any deviation of the
+  data from a Platonic source function is *common to every interpolant of the
+  same table* and largely cancels in downstream comparisons. This is the
+  v0.2.0 default (`edge_order_min = order`). Cautionary tale: an earlier
+  default tapered the edges, and the ~``10^{-8}``-level truncation kinks it
+  introduced near the boundaries systematically biased bounds computed by a
+  downstream linear program, while full windows matched an exact-interpolation
+  reference to ``10^{-8}`` in the final result.
 
-where ``k`` counts nodes on the thinner side of the query, so the query stays
-near the window center. The floor ``s_{\min} = \texttt{edge\_order\_min} + 1``
-(default degree 12, i.e. 13 nodes) balances the two error terms: amplification
-``\sim 2^{s}`` falls with ``s`` while truncation ``\sim (ch)^{s}`` rises, and
-at degree 12 on fine grids both sit below the Float64 data floor. Measured
-effect at degree 28: worst boundary error improves from ``5 \times 10^{-11}``
-to ``4 \times 10^{-15}`` (~14 000×), with interior queries bit-identical to
-the untapered scheme. **More points near a boundary make edge evaluation
-worse, not better** — the taper deliberately uses fewer.
+- **The node values carry error ``\gg`` working precision and the target is
+  the underlying pre-noise function** (e.g. experimentally noisy tables,
+  single-precision sources). Then edge amplification of that error is real,
+  and no amount of higher-precision *arithmetic* recovers it — the cure is
+  geometric. Pass a smaller `edge_order_min`: [`stencil_window`](@ref) tapers
+  the width to
+
+  ```math
+  s(k) \;=\; \operatorname{clamp}\!\bigl(2k,\; s_{\min},\; \text{order}+1\bigr),
+  ```
+
+  where ``k`` counts nodes on the thinner side of the query, so the query
+  stays near the window center. The floor ``s_{\min} =
+  \texttt{edge\_order\_min} + 1`` (degree 12 is a good choice on fine grids)
+  balances amplification ``\sim 2^{s}`` (falls with ``s``) against truncation
+  ``\sim (ch)^{s}`` (rises). Measured effect at degree 28: worst boundary
+  error vs the source function improves from ``5 \times 10^{-11}`` to
+  ``4 \times 10^{-15}`` (~14 000×), with interior queries bit-identical.
+  In this regime, more points near a boundary make edge evaluation worse,
+  not better — the taper deliberately uses fewer.
 
 ## Precision semantics
 

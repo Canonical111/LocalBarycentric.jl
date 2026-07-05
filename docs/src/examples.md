@@ -89,8 +89,10 @@ end
 - **Batch columns** into a matrix rather than looping `interpolate_local`
   per column.
 - **Choose `order`** by your accuracy target and grid spacing; on fine grids
-  the interior is data-floor-limited already at moderate order, and the
-  default edge floor (degree 12) is usually right. Raise `edge_order_min`
-  only on coarse grids where degree-12 truncation is visible.
+  the interior is data-floor-limited already at moderate order. Leave the
+  edges at the default (full windows) unless your node values carry error
+  much larger than the working precision *and* you care about the underlying
+  pre-noise function — only then set `edge_order_min` (degree 12 is a good
+  floor) to taper the edge windows.
 - **Avoid extrapolation** — outside the node hull the boundary window's
   polynomial is evaluated, and its accuracy degrades rapidly.

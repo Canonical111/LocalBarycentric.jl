@@ -61,12 +61,19 @@ end
 @testset "accuracy floors vs BigFloat reference" begin
     vals = fexact.(NODES)                       # Float64 data
     cache = LocalBarycentricCache(NODES; order = 28)
+    # default = full windows everywhere (no taper)
+    @test cache.edge_min == cache.stencil == 29
     # interior: Float64 data floor
     xs_mid = [(NODES[i] + NODES[i + 1]) / 2 for i in 150:250]
     @test maximum(relerr(interpolate_local(cache, vals, x), x) for x in xs_mid) < 5e-14
-    # tapered edge: stays near the data floor (was ~1e-10 with full clamped windows)
+    # full one-sided edge windows amplify data rounding (Lebesgue ~2^s) but
+    # stay within the documented envelope
     xs_edge = [(NODES[i] + NODES[i + 1]) / 2 for i in 1:14]
-    @test maximum(relerr(interpolate_local(cache, vals, x), x) for x in xs_edge) < 1e-13
+    @test maximum(relerr(interpolate_local(cache, vals, x), x) for x in xs_edge) < 5e-10
+    # opt-in taper: guards the edge against data rounding at reduced order
+    tcache = LocalBarycentricCache(NODES; order = 28, edge_order_min = 12)
+    @test tcache.edge_min == 13
+    @test maximum(relerr(interpolate_local(tcache, vals, x), x) for x in xs_edge) < 1e-13
 
     # genuine extended precision: BigFloat nodes+values+weights → far below 1e-16
     bnodes = BigFloat.(NODES)
